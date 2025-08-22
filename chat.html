@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QuizX — Responsive JSON Quiz (HTML/CSS/JS)</title>
+  <meta name="description" content="Responsive quiz app with daily practice, exam mode, classes/subjects/topics, MathJax formulas, Chart.js results, and localStorage tracking." />
+
+  <!-- Fonts (optional) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js for graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- MathJax for LaTeX/MathML rendering -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' },
+      options: { renderActions: { addMenu: [] } }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #0b0b0b;
+      --muted: #5a5a5a;
+      --card: #f6f6f6;
+      --accent: #e11d48; /* red */
+      --accent-weak: #fee2e2;
+      --border: #e5e7eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0b0b; /* black */
+        --fg: #f8fafc; /* white-ish */
+        --muted: #9aa0a6;
+        --card: #151515;
+        --accent: #e11d48; /* red */
+        --accent-weak: #3f0d16;
+        --border: #222;
+      }
+    }
+    html[data-theme="light"]:root {
+      --bg: #ffffff; --fg: #0b0b0b; --muted: #5a5a5a; --card: #f6f6f6; --accent: #e11d48; --accent-weak: #fee2e2; --border: #e5e7eb;
+    }
+    html[data-theme="dark"]:root {
+      --bg: #0b0b0b; --fg: #f8fafc; --muted: #9aa0a6; --card: #151515; --accent: #e11d48; --accent-weak: #3f0d16; --border: #222;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+      background: var(--bg); color: var(--fg); min-height: 100dvh;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* Top Nav */
+    .nav {
+      position: sticky; top: 0; z-index: 40; backdrop-filter: saturate(120%) blur(6px);
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: .8rem 1rem; }
+    .brand { display: flex; align-items: center; gap: .6rem; font-weight: 800; letter-spacing: .2px; }
+    .brand .badge { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; color: white; font-weight: 800; }
+    .tabs { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .tab { padding: .5rem .75rem; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); font-weight: 600; }
+    .tab.active, .tab:hover { color: var(--fg); border-color: var(--accent); }
+
+    .right { display: flex; align-items: center; gap: .5rem; }
+    .btn, button {
+      background: var(--accent); color: white; border: none; padding: .6rem .9rem; border-radius: .8rem; font-weight: 700;
+      box-shadow: 0 6px 18px -8px var(--accent);
+    }
+    .btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); box-shadow: none; }
+    .btn.ghost:hover { border-color: var(--accent); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+    .grid { display: grid; gap: 1rem; }
+    @media (min-width: 640px) { .grid.cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (min-width: 900px) { .grid.cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem; }
+    .card:hover { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+    .thumb { width: 100%; aspect-ratio: 16/9; background: linear-gradient(145deg, var(--accent-weak), transparent); border-radius: .8rem; border: 1px dashed var(--border); display: grid; place-items: center; font-weight: 800; }
+
+    .section-title { display: flex; align-items: center; justify-content: space-between; margin: 1rem 0 .5rem; }
+    .muted { color: var(--muted); }
+    .pill { display: inline-flex; gap: .4rem; align-items: center; font-size: .85rem; padding: .25rem .6rem; border: 1px solid var(--border); border-radius: 999px; }
+
+    /* Modal */
+    dialog { border: 1px solid var(--border); border-radius: 1rem; max-width: 680px; width: calc(100% - 2rem); background: var(--bg); color: var(--fg); }
+    dialog::backdrop { background: color-mix(in srgb, black 30%, transparent); }
+
+    /* Quiz */
+    .q-title { font-weight: 700; font-size: 1.05rem; margin-bottom: .6rem; }
+    .answers { display: grid; gap: .6rem; }
+    .answer { border: 1px solid var(--border); background: #0000; padding: .75rem .9rem; border-radius: .8rem; display: flex; gap: .7rem; align-items: start; }
+    .answer input { margin-top: .3rem; }
+    .answer.correct { border-color: #22c55e88; background: color-mix(in srgb, #22c55e 10%, transparent); }
+    .answer.wrong   { border-color: #ef444488; background: color-mix(in srgb, #ef4444 10%, transparent); }
+
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: .85rem; }
+
+    footer { padding: 3rem 1rem; color: var(--muted); text-align: center; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="brand"><div class="badge">Q</div> QuizX</div>
+      <div class="tabs" id="navTabs">
+        <a href="#home"    class="tab" data-route>Home</a>
+        <a href="#classes" class="tab" data-route>Classes</a>
+        <a href="#exam"    class="tab" data-route>Exam</a>
+        <a href="#results" class="tab" data-route>Results</a>
+      </div>
+      <div class="right">
+        <select id="themeSelect" class="btn ghost" title="Theme">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+        <button id="resetDaily" class="btn ghost" title="Debug: reset daily limit">Reset Daily</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <!-- HOME -->
+    <section id="home" data-view>
+      <div class="section-title">
+        <h2>Daily Practice</h2>
+        <span class="pill">10 Q • once per day</span>
+      </div>
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="thumb">DAILY • 10Q</div>
+          <h3>Today’s Random Quiz</h3>
+          <p class="muted">A fresh set of 10 mixed questions from the full bank. Come back each day to keep your streak!</p>
+          <div style="display:flex; gap:.6rem; margin-top:.6rem; align-items:center;">
+            <button id="startDailyBtn">Start today’s quiz</button>
+            <span class="muted" id="dailyStatus"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="thumb">TRACK</div>
+          <h3>Progress Summary</h3>
+          <p class="muted">Your recent attempts will appear here. View detailed analytics on the Results page.</p>
+          <canvas id="homeSummaryChart" height="160"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLASSES / SUBJECTS / TOPICS -->
+    <section id="classes" data-view hidden>
+      <div class="section-title"><h2>Classes</h2><span class="muted">Browse by class → subject → topic</span></div>
+      <div id="classesGrid" class="grid cols-3"></div>
+    </section>
+
+    <section id="subjects" data-view hidden>
+      <div class="section-title"><h2 id="subjectsTitle">Subjects</h2><a href="#classes" class="pill">← Back</a></div>
+      <div id="subjectsGrid" class="grid cols-3"></div>
+    </section>
+
+    <section id="topics" data-view hidden>
+      <div class="section-title"><h2 id="topicsTitle">Topics</h2><a href="#subjects" class="pill">← Back</a></div>
+      <div id="topicsGrid" class="grid cols-3"></div>
+    </section>
+
+    <!-- EXAM -->
+    <section id="exam" data-view hidden>
+      <div class="section-title"><h2>Exam Mode</h2><span class="muted">Unlimited attempts</span></div>
+      <div class="card">
+        <div class="grid">
+          <div>
+            <label>Class</label>
+            <select id="examClass"></select>
+          </div>
+          <div>
+            <label>Subject</label>
+            <select id="examSubject"></select>
+          </div>
+          <div>
+            <label>Topic</label>
+            <select id="examTopic"></select>
+          </div>
+          <div>
+            <label>Question Count</label>
+            <input id="examCount" type="number" min="5" max="50" value="20" class="kbd" />
+          </div>
+          <div>
+            <button id="startExamBtn">Start Exam</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUIZ RUNNER -->
+    <section id="quiz" data-view hidden>
+      <div class="section-title"><h2 id="quizTitle">Quiz</h2><span id="quizMeta" class="pill">Q <span id="qIndex">1</span>/<span id="qTotal">10</span></span></div>
+      <div id="quizCard" class="card">
+        <div id="questionText" class="q-title"></div>
+        <div class="answers" id="answers"></div>
+        <div id="explanation" class="muted" style="margin-top:.8rem; display:none;"></div>
+        <div style="display:flex; gap:.6rem; margin-top:1rem;">
+          <button id="prevBtn" class="btn ghost">Prev</button>
+          <button id="nextBtn">Next</button>
+          <button id="submitBtn" class="btn ghost" style="margin-left:auto;">Submit Quiz</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results" data-view hidden>
+      <div class="section-title"><h2>Results & Analytics</h2><span class="muted">Your attempts are saved on this device</span></div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Score Trends</h3>
+          <canvas id="resultsChart" height="180"></canvas>
+        </div>
+        <div class="card">
+          <h3>Attempts</h3>
+          <div id="attemptsList" class="grid"></div>
+        </div>
+      </div>
+      <div id="attemptDetail" class="card" hidden>
+        <h3>Attempt Detail</h3>
+        <div id="attemptMeta" class="muted" style="margin-bottom:.5rem;"></div>
+        <div id="attemptItems"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Built with ❤️ using HTML/CSS/JS • LocalStorage • MathJax • Chart.js
+  </footer>
+
+  <!-- Daily modal (optional UX) -->
+  <dialog id="dailyDialog">
+    <form method="dialog" style="padding:1rem;">
+      <h3 style="margin-top:0;">Today’s Quiz</h3>
+      <p class="muted">You can take one 10-question quiz per day. Ready?</p>
+      <div style="display:flex; gap:.5rem; justify-content:flex-end;">
+        <button class="btn ghost" value="cancel">Cancel</button>
+        <button class="btn" value="ok">Start</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+  /*****************************************************
+   * SAMPLE QUESTION BANK (in one JSON-like object)
+   * Replace with fetch('questions.json').then(r=>r.json())
+   *****************************************************/
+  const QUESTION_DB = [
+    {
+      id: 'MATH-ALG-001',
+      class: 'Class 9', subject: 'Mathematics', topic: 'Algebra',
+      question: 'Solve: $x^2 - 5x + 6 = 0$',
+      options: ['x=1 or 6', 'x=2 or 3', 'x=-2 or -3', 'x=0'],
+      correct: [1], // index-based, supports multiple answers
+      explanation: 'Factorize: $(x-2)(x-3)=0$ ⇒ $x=2$ or $x=3$.',
+      tags: ['algebra','quadratic','past-year']
+    },
+    {
+      id: 'MATH-GEO-002', class: 'Class 9', subject: 'Mathematics', topic: 'Geometry',
+      question: 'Sum of interior angles of a triangle is __ degrees.',
+      options: ['90', '180', '270', '360'],
+      correct: [1],
+      explanation: 'By Euclidean geometry, sum is 180°.',
+      tags: ['geometry','fundamental']
+    },
+    {
+      id: 'PHY-MECH-003', class: 'Class 10', subject: 'Physics', topic: 'Mechanics',
+      question: 'Unit of force is?',
+      options: ['Joule', 'Watt', 'Newton', 'Pascal'],
+      correct: [2],
+      explanation: 'SI unit of force is Newton (N).',
+      tags: ['physics','units']
+    },
+    {
+      id: 'CHEM-ATOM-004', class: 'Class 10', subject: 'Chemistry', topic: 'Atomic Structure',
+      question: 'Atomic number represents number of __ in an atom.',
+      options: ['Protons', 'Neutrons', 'Electrons', 'Nucleons'],
+      correct: [0],
+      explanation: 'Atomic number Z = number of protons.',
+      tags: ['chemistry','basics']
+    },
+    {
+      id: 'ICT-HTML-005', class: 'Class 9', subject: 'ICT', topic: 'HTML',
+      question: 'Which tag creates a hyperlink?',
+      options: ['<div>', '<a>', '<span>', '<link>'],
+      correct: [1],
+      explanation: 'Use <a href="..."> for links.',
+      tags: ['ict','web']
+    },
+    {
+      id: 'MATH-ALG-006', class: 'Class 10', subject: 'Mathematics', topic: 'Algebra',
+      question: 'If $a+b=10$ and $ab=21$, then roots of $x^2-10x+21=0$ are?',
+      options: ['3 and 7', '1 and 21', '2 and 8', '4 and 6'],
+      correct: [0],
+      explanation: 'Discriminant: $100-84=16$, roots $(10\pm4)/2=3,7$.',
+      tags: ['algebra']
+    },
+    {
+      id: 'PHY-OPT-007', class: 'Class 9', subject: 'Physics', topic: 'Optics',
+      question: 'Speed of light in vacuum is approximately?',
+      options: ['3×10^5 m/s', '3×10^8 m/s', '3×10^6 m/s', '3×10^9 m/s'],
+      correct: [1],
+      explanation: 'c ≈ 3×10^8 m/s.',
+      tags: ['physics']
+    },
+    {
+      id: 'CHEM-PER-008', class: 'Class 9', subject: 'Chemistry', topic: 'Periodic Table',
+      question: 'Which is an alkali metal?',
+      options: ['Calcium', 'Sodium', 'Aluminum', 'Iron'],
+      correct: [1],
+      explanation: 'Sodium (Na) is Group 1 alkali metal.',
+      tags: ['chemistry']
+    },
+    {
+      id: 'ICT-CSS-009', class: 'Class 10', subject: 'ICT', topic: 'CSS',
+      question: 'Which CSS property changes text color?',
+      options: ['font-weight', 'background', 'color', 'font-style'],
+      correct: [2],
+      explanation: 'Use the color property for text color.',
+      tags: ['ict','web']
+    },
+    {
+      id: 'MATH-TRI-010', class: 'Class 9', subject: 'Mathematics', topic: 'Trigonometry',
+      question: 'Value of $\\sin^2\\theta + \\cos^2\\theta$ is?',
+      options: ['0', '1', '2', 'Depends on θ'],
+      correct: [1],
+      explanation: 'Pythagorean identity equals 1.',
+      tags: ['trigonometry']
+    },
+    {
+      id: 'MATH-STAT-011', class: 'Class 10', subject: 'Mathematics', topic: 'Statistics',
+      question: 'Mean of 2, 4, 6, 8 is?',
+      options: ['5', '6', '7', '4'],
+      correct: [0],
+      explanation: '(2+4+6+8)/4 = 5.',
+      tags: ['statistics']
+    },
+    {
+      id: 'PHY-THERM-012', class: 'Class 10', subject: 'Physics', topic: 'Thermodynamics',
+      question: 'Which law states energy cannot be created or destroyed?',
+      options: ['Zeroth Law', 'First Law', 'Second Law', 'Charles’ Law'],
+      correct: [1],
+      explanation: 'First law of thermodynamics.',
+      tags: ['physics']
+    }
+  ];
+
+  /*****************************************************
+   * Utilities
+   *****************************************************/
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const storage = {
+    get(key, fallback=null){ try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
+    set(key, value){ localStorage.setItem(key, JSON.stringify(value)); },
+    del(key){ localStorage.removeItem(key); }
+  };
+  const todayStr = () => new Date().toISOString().slice(0,10);
+  const shuffle = (arr) => arr.map(v=>[Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]);
+
+  function groupBy(list, key){
+    return list.reduce((acc, item)=>{ const k=item[key]; (acc[k] ||= []).push(item); return acc; }, {});
+  }
+
+  /*****************************************************
+   * Router (hash-based)
+   *****************************************************/
+  const routes = ['home','classes','subjects','topics','exam','quiz','results'];
+  function setActiveTab(hash){
+    $$('#navTabs .tab').forEach(a=>a.classList.toggle('active', a.getAttribute('href') === hash));
+  }
+  function showView(id){
+    $$('section[data-view]').forEach(s=>s.hidden = (s.id !== id));
+  }
+  window.addEventListener('hashchange', () => {
+    const id = location.hash.replace('#','') || 'home';
+    if (!routes.includes(id)) return;
+    setActiveTab('#'+id);
+    showView(id);
+  });
+
+  /*****************************************************
+   * Theme
+   *****************************************************/
+  const themeSelect = $('#themeSelect');
+  function applyTheme(mode){
+    const html = document.documentElement;
+    html.setAttribute('data-theme', mode);
+    themeSelect.value = mode;
+  }
+  function initTheme(){
+    const saved = storage.get('themeMode', 'system');
+    applyTheme(saved);
+    themeSelect.addEventListener('change', () => {
+      const v = themeSelect.value; storage.set('themeMode', v); applyTheme(v);
+    });
+  }
+
+  /*****************************************************
+   * Data Indexes (classes/subjects/topics)
+   *****************************************************/
+  const Index = {
+    classes: [], subjectsByClass: {}, topicsByClassSubject: {},
+    build(){
+      this.classes = [...new Set(QUESTION_DB.map(q=>q.class))].sort();
+      this.subjectsByClass = {};
+      for (const cls of this.classes){
+        const subjs = [...new Set(QUESTION_DB.filter(q=>q.class===cls).map(q=>q.subject))].sort();
+        this.subjectsByClass[cls] = subjs;
+        for (const s of subjs){
+          const topics = [...new Set(QUESTION_DB.filter(q=>q.class===cls && q.subject===s).map(q=>q.topic))].sort();
+          this.topicsByClassSubject[`${cls}__${s}`] = topics;
+        }
+      }
+    }
+  };
+
+  /*****************************************************
+   * Classes/Subjects/Topics UI
+   *****************************************************/
+  function renderClasses(){
+    const grid = $('#classesGrid'); grid.innerHTML='';
+    for (const cls of Index.classes){
+      const el = document.createElement('a'); el.href = '#subjects'; el.className='card';
+      el.innerHTML = `
+        <div class="thumb">${cls}</div>
+        <h3>${cls}</h3>
+        <p class="muted">${Index.subjectsByClass[cls].length} subjects</p>`;
+      el.addEventListener('click', ()=>{
+        storage.set('nav.class', cls);
+        $('#subjectsTitle').textContent = `Subjects — ${cls}`;
+        renderSubjects(cls);
+      });
+      grid.appendChild(el);
+    }
+  }
+  function renderSubjects(cls){
+    const grid = $('#subjectsGrid'); grid.innerHTML='';
+    for (const subj of Index.subjectsByClass[cls]){
+      const el = document.createElement('a'); el.href = '#topics'; el.className='card';
+      el.innerHTML = `
+        <div class="thumb">${subj}</div>
+        <h3>${subj}</h3>
+        <p class="muted">${Index.topicsByClassSubject[`${cls}__${subj}`].length} topics</p>`;
+      el.addEventListener('click', ()=>{
+        storage.set('nav.subject', subj);
+        $('#topicsTitle').textContent = `Topics — ${cls} / ${subj}`;
+        renderTopics(cls, subj);
+      });
+      grid.appendChild(el);
+    }
+  }
+  function renderTopics(cls, subj){
+    const grid = $('#topicsGrid'); grid.innerHTML='';
+    for (const topic of Index.topicsByClassSubject[`${cls}__${subj}`]){
+      const el = document.createElement('a'); el.href = '#exam'; el.className='card';
+      el.innerHTML = `
+        <div class="thumb">${topic}</div>
+        <h3>${topic}</h3>
+        <p class="muted">Start focused quiz</p>`;
+      el.addEventListener('click', ()=>{
+        // Prefill exam selectors
+        $('#examClass').value = cls; populateSubjects();
+        $('#examSubject').value = subj; populateTopics();
+        $('#examTopic').value = topic;
+      });
+      grid.appendChild(el);
+    }
+  }
+
+  /*****************************************************
+   * Exam selectors
+   *****************************************************/
+  function populateClasses(){
+    const sel = $('#examClass'); sel.innerHTML='';
+    for (const c of Index.classes){
+      const o = document.createElement('option'); o.value=o.textContent=c; sel.appendChild(o);
+    }
+  }
+  function populateSubjects(){
+    const cls = $('#examClass').value; const sel = $('#examSubject'); sel.innerHTML='';
+    for (const s of Index.subjectsByClass[cls]){ const o=document.createElement('option'); o.value=o.textContent=s; sel.appendChild(o); }
+  }
+  function populateTopics(){
+    const cls = $('#examClass').value; const subj = $('#examSubject').value; const sel = $('#examTopic'); sel.innerHTML='';
+    const topics = Index.topicsByClassSubject[`${cls}__${subj}`] || [];
+    const all = document.createElement('option'); all.value='*'; all.textContent='All Topics'; sel.appendChild(all);
+    for (const t of topics){ const o=document.createElement('option'); o.value=o.textContent=t; sel.appendChild(o); }
+  }
+
+  /*****************************************************
+   * Quiz Engine
+   *****************************************************/
+  const Quiz = {
+    mode: 'daily', // 'daily' | 'exam'
+    questions: [],
+    answers: {}, // qid -> [indices]
+    index: 0,
+    meta: {}, // class/subject/topic/count
+
+    start({ mode, questions, meta }){
+      this.mode = mode; this.questions = questions; this.answers = {}; this.index = 0; this.meta = meta||{};
+      $('#qTotal').textContent = questions.length;
+      $('#quizTitle').textContent = mode === 'daily' ? 'Daily Practice' : 'Exam';
+      location.hash = '#quiz';
+      this.render();
+    },
+    current(){ return this.questions[this.index]; },
+    render(){
+      const q = this.current(); if (!q) return;
+      $('#qIndex').textContent = this.index+1;
+      $('#questionText').innerHTML = q.question; // MathJax will typeset
+      const answersEl = $('#answers'); answersEl.innerHTML='';
+      const multiple = (q.correct && q.correct.length > 1);
+      const saved = this.answers[q.id] || [];
+      q.options.forEach((opt, i) => {
+        const id = `ans_${q.id}_${i}`;
+        const wrapper = document.createElement('label'); wrapper.className='answer';
+        wrapper.innerHTML = `
+          <input type="${multiple ? 'checkbox':'radio'}" name="q_${q.id}" id="${id}" value="${i}">
+          <div>${opt.replaceAll('<','&lt;').replaceAll('>','&gt;')}</div>`;
+        answersEl.appendChild(wrapper);
+        const input = wrapper.querySelector('input');
+        input.checked = saved.includes(i);
+        input.addEventListener('change', ()=>{
+          if (multiple){
+            const arr = new Set(this.answers[q.id]||[]);
+            input.checked ? arr.add(i) : arr.delete(i);
+            this.answers[q.id] = [...arr];
+          } else {
+            this.answers[q.id] = [i];
+          }
+        });
+      });
+      // hide explanation until evaluated
+      $('#explanation').style.display='none';
+      // Re-typeset MathJax when question changes
+      if (window.MathJax) MathJax.typesetPromise?.();
+    },
+    evaluate(){
+      let correct=0; const items=[];
+      for (const q of this.questions){
+        const chosen = new Set(this.answers[q.id]||[]);
+        const corr = new Set(q.correct||[]);
+        const ok = chosen.size === corr.size && [...chosen].every(i=>corr.has(i));
+        if (ok) correct++;
+        items.push({ id: q.id, ok, chosen:[...chosen], correct:[...corr] });
+      }
+      return { correct, total: this.questions.length, items };
+    },
+    showMarking(){
+      const q = this.current(); if (!q) return;
+      // decorate current answers
+      $$('#answers .answer').forEach((el, i)=>{
+        el.classList.remove('correct','wrong');
+        const chosen = (this.answers[q.id]||[]).includes(i);
+        const isCorr = (q.correct||[]).includes(i);
+        if (chosen && isCorr) el.classList.add('correct');
+        else if (chosen && !isCorr) el.classList.add('wrong');
+      });
+      const exp = $('#explanation'); exp.style.display='block'; exp.innerHTML = `<b>Explanation:</b> ${q.explanation}`;
+      if (window.MathJax) MathJax.typesetPromise?.();
+    }
+  };
+
+  // Quiz controls
+  $('#prevBtn').addEventListener('click', ()=>{ if (Quiz.index>0){ Quiz.index--; Quiz.render(); } });
+  $('#nextBtn').addEventListener('click', ()=>{ if (Quiz.index<Quiz.questions.length-1){ Quiz.index++; Quiz.render(); } });
+  $('#submitBtn').addEventListener('click', ()=>{
+    const result = Quiz.evaluate();
+    saveAttempt({
+      mode: Quiz.mode,
+      meta: Quiz.meta,
+      questions: Quiz.questions.map(q=>({ id:q.id, class:q.class, subject:q.subject, topic:q.topic })),
+      answers: Quiz.answers,
+      result,
+      at: Date.now()
+    });
+    if (Quiz.mode==='daily') markDailyDone();
+    renderResults();
+    location.hash = '#results';
+  });
+
+  /*****************************************************
+   * Daily logic
+   *****************************************************/
+  function dailyStatus(){
+    const d = storage.get('daily.date', '');
+    return d === todayStr();
+  }
+  function markDailyDone(){ storage.set('daily.date', todayStr()); }
+
+  function renderHome(){
+    const statusEl = $('#dailyStatus');
+    if (dailyStatus()){
+      statusEl.textContent = `Already completed today (${todayStr()}). Come back tomorrow.`;
+      $('#startDailyBtn').disabled = true;
+    } else {
+      statusEl.textContent = 'Ready for a new set!';
+      $('#startDailyBtn').disabled = false;
+    }
+    renderHomeChart();
+  }
+
+  $('#resetDaily').addEventListener('click', ()=>{ storage.del('daily.date'); renderHome(); });
+
+  const dailyDialog = $('#dailyDialog');
+  $('#startDailyBtn').addEventListener('click', async ()=>{
+    if (dailyStatus()) return;
+    if (typeof dailyDialog.showModal === 'function'){
+      const res = await new Promise(resolve=>{
+        dailyDialog.addEventListener('close', function onClose(){ dailyDialog.removeEventListener('close', onClose); resolve(dailyDialog.returnValue); });
+        dailyDialog.showModal();
+      });
+      if (res !== 'ok') return;
+    }
+    const questions = shuffle(QUESTION_DB).slice(0,10);
+    Quiz.start({ mode:'daily', questions, meta:{ kind:'daily', count:10 } });
+  });
+
+  /*****************************************************
+   * Exam start
+   *****************************************************/
+  $('#examClass').addEventListener('change', ()=>{ populateSubjects(); populateTopics(); });
+  $('#examSubject').addEventListener('change', ()=>{ populateTopics(); });
+  $('#startExamBtn').addEventListener('click', ()=>{
+    const cls = $('#examClass').value; const subj = $('#examSubject').value; const topic = $('#examTopic').value; const n = Math.max(5, Math.min(50, +$('#examCount').value||20));
+    let pool = QUESTION_DB.filter(q=>q.class===cls && q.subject===subj);
+    if (topic && topic !== '*') pool = pool.filter(q=>q.topic===topic);
+    const questions = shuffle(pool).slice(0, n);
+    Quiz.start({ mode:'exam', questions, meta:{ kind:'exam', class:cls, subject:subj, topic, count:n } });
+  });
+
+  /*****************************************************
+   * Results storage & charts
+   *****************************************************/
+  function saveAttempt(attempt){
+    const list = storage.get('attempts', []);
+    list.push(attempt);
+    storage.set('attempts', list);
+  }
+  function renderHomeChart(){
+    const list = storage.get('attempts', []).slice(-6);
+    const ctx = $('#homeSummaryChart').getContext('2d');
+    if (window._homeChart){ window._homeChart.destroy(); }
+    window._homeChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: list.map(a=>new Date(a.at).toLocaleDateString()),
+        datasets: [{ label:'Score', data: list.map(a=>Math.round(100*a.result.correct/a.result.total)) }]
+      },
+      options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, max:100 } } }
+    });
+  }
+  function renderResults(){
+    // Trend chart
+    const attempts = storage.get('attempts', []);
+    const ctx = $('#resultsChart').getContext('2d');
+    if (window._resChart){ window._resChart.destroy(); }
+    window._resChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: attempts.map(a=>new Date(a.at).toLocaleString()),
+        datasets: [{ label:'% Score', data: attempts.map(a=>Math.round(100*a.result.correct/a.result.total)) }]
+      },
+      options: { responsive:true, scales:{ y:{ beginAtZero:true, max:100 } } }
+    });
+
+    // Attempts list
+    const listEl = $('#attemptsList'); listEl.innerHTML='';
+    attempts.slice().reverse().forEach((a, idx)=>{
+      const pct = Math.round(100*a.result.correct/a.result.total);
+      const card = document.createElement('div'); card.className='card';
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem;">
+          <div>
+            <div><b>${a.mode==='daily'?'Daily':'Exam'}</b> • ${new Date(a.at).toLocaleString()}</div>
+            <div class="muted">${a.meta?.class||''} ${a.meta?.subject?('• '+a.meta.subject):''} ${a.meta?.topic && a.meta.topic!=='*'?('• '+a.meta.topic):''}</div>
+          </div>
+          <div class="pill">Score: ${a.result.correct}/${a.result.total} (${pct}%)</div>
+        </div>`;
+      card.addEventListener('click', ()=>showAttempt(a));
+      listEl.appendChild(card);
+    });
+  }
+  function showAttempt(a){
+    $('#attemptDetail').hidden = false;
+    $('#attemptMeta').textContent = `${a.mode==='daily'?'Daily':'Exam'} • ${new Date(a.at).toLocaleString()} • ${a.result.correct}/${a.result.total}`;
+    const box = $('#attemptItems'); box.innerHTML='';
+    const byId = Object.fromEntries(QUESTION_DB.map(q=>[q.id,q]));
+    a.questions.forEach((qi, i)=>{
+      const q = byId[qi.id];
+      const chosen = new Set(a.answers[qi.id]||[]);
+      const corr = new Set((q.correct||[]));
+      const ok = chosen.size === corr.size && [...chosen].every(x=>corr.has(x));
+      const wrap = document.createElement('div'); wrap.className='card';
+      wrap.innerHTML = `
+        <div class="muted">Q${i+1} — ${qi.class} / ${qi.subject} / ${qi.topic}</div>
+        <div class="q-title">${q.question}</div>
+        <div class="answers">${q.options.map((opt, idx)=>{
+          const chosenCls = chosen.has(idx) ? (corr.has(idx)?'correct':'wrong') : '';
+          return `<div class="answer ${chosenCls}"><div class="kbd">${String.fromCharCode(65+idx)}</div><div>${opt.replaceAll('<','&lt;').replaceAll('>','&gt;')}</div></div>`;
+        }).join('')}</div>
+        <div style="margin-top:.5rem;" class="muted"><b>Explanation:</b> ${q.explanation}</div>`;
+      box.appendChild(wrap);
+    });
+    if (window.MathJax) MathJax.typesetPromise?.();
+  }
+
+  /*****************************************************
+   * Boot
+   *****************************************************/
+  function boot(){
+    initTheme();
+    Index.build();
+    renderClasses();
+    // Prefill first selections for Exam
+    populateClasses();
+    $('#examClass').addEventListener('change', ()=>{});
+    $('#examClass').value = Index.classes[0] || '';
+    populateSubjects();
+    $('#examSubject').value = Index.subjectsByClass[$('#examClass').value]?.[0] || '';
+    populateTopics();
+    $('#examTopic').value = '*';
+
+    renderHome();
+    renderResults();
+
+    // Initial route
+    const initial = location.hash.replace('#','') || 'home';
+    if (!routes.includes(initial)) location.hash = '#home';
+    setActiveTab('#'+(location.hash.replace('#','')||'home'));
+    showView(location.hash.replace('#','')||'home');
+  }
+
+  document.addEventListener('DOMContentLoaded', boot);
+  </script>
+</body>
+</html>

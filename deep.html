@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuizMaster Pro - Test Your Knowledge</title>
+    <title>QuizMaster Pro - Advanced Quiz Platform</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -20,11 +22,13 @@
             --option-incorrect: #ff5252;
             --timer-warning: #ff9800;
             --timer-critical: #f44336;
+            --tag-bg: #333;
+            --tag-text: #fff;
         }
 
         .light-mode {
             --primary-bg: #fff;
-            --secondary-bg: #f5f5f5;
+            --secondary-bg: #f5f5f7;
             --primary-text: #000;
             --accent: #ff3b30;
             --secondary-accent: #ff6b66;
@@ -35,6 +39,8 @@
             --option-incorrect: #ff5252;
             --timer-warning: #ff9800;
             --timer-critical: #f44336;
+            --tag-bg: #e0e0e0;
+            --tag-text: #333;
         }
 
         * {
@@ -204,6 +210,11 @@
             background-color: #555;
         }
 
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -259,6 +270,11 @@
             align-items: center;
             margin-bottom: 20px;
             flex-wrap: wrap;
+            position: sticky;
+            top: 70px;
+            background-color: var(--primary-bg);
+            padding: 10px 0;
+            z-index: 10;
         }
 
         .timer {
@@ -267,6 +283,10 @@
             padding: 8px 15px;
             border-radius: 5px;
             background-color: var(--secondary-bg);
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 100;
         }
 
         .timer.warning {
@@ -298,6 +318,13 @@
             margin-bottom: 15px;
             font-size: 0.9rem;
             color: #aaa;
+            flex-wrap: wrap;
+        }
+
+        .question-image {
+            max-width: 100%;
+            margin: 15px 0;
+            border-radius: 8px;
         }
 
         .options {
@@ -314,7 +341,7 @@
             cursor: pointer;
             transition: all 0.3s;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
         }
 
         .option:hover {
@@ -335,6 +362,17 @@
 
         .option input {
             margin-right: 10px;
+            margin-top: 4px;
+        }
+
+        .option-content {
+            flex: 1;
+        }
+
+        .option-image {
+            max-width: 100%;
+            margin-top: 8px;
+            border-radius: 5px;
         }
 
         .navigation {
@@ -378,11 +416,23 @@
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-actions {
+            margin-left: 15px;
         }
 
         .tag {
             display: inline-block;
-            background-color: #333;
+            background-color: var(--tag-bg);
+            color: var(--tag-text);
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 0.8rem;
@@ -475,6 +525,13 @@
             cursor: pointer;
         }
 
+        /* MathJax styling */
+        .math-formula {
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        /* Responsive adjustments */
         @media (max-width: 768px) {
             .menu-toggle {
                 display: block;
@@ -526,7 +583,51 @@
             }
 
             .timer {
+                position: relative;
+                top: 0;
+                right: 0;
                 margin-top: 10px;
+            }
+
+            .question-meta {
+                flex-direction: column;
+            }
+
+            .question-meta span {
+                margin-bottom: 5px;
+            }
+
+            .history-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .history-actions {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1.4rem;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+            
+            .card {
+                min-width: 100%;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .score-display {
+                font-size: 1.5rem;
             }
         }
     </style>
@@ -624,6 +725,7 @@
                 <div class="question-meta">
                     <span id="marks-display">Marks: 1</span>
                     <span id="negative-marking-display">Negative Marking: No</span>
+                    <span id="answer-type-display">Answer Type: Single</span>
                 </div>
                 <div class="question" id="question-text">
                     <!-- Question will be inserted here -->
@@ -724,8 +826,10 @@
         </div>
     </footer>
 
+    <!-- External JSON data would be loaded here in a real application -->
     <script>
-        // Quiz Data (in a real app, this would be in a separate JSON file)
+        // In a real application, we would load this from an external JSON file
+        // For this example, we'll keep it here but structure it as if it's external
         const quizData = {
             classes: [
                 {
@@ -748,18 +852,18 @@
                                     questions: [
                                         {
                                             id: "math-algebra-linear-1",
-                                            question: "Solve for x: 2x + 5 = 13",
+                                            question: "Solve for x: \(2x + 5 = 13\)",
                                             options: ["x = 4", "x = 5", "x = 6", "x = 7"],
                                             correctAnswer: 0,
-                                            explanation: "Subtract 5 from both sides: 2x = 8. Then divide both sides by 2: x = 4.",
+                                            explanation: "Subtract 5 from both sides: \(2x = 8\). Then divide both sides by 2: \(x = 4\).",
                                             tags: ["algebra", "linear equations", "solving equations"]
                                         },
                                         {
                                             id: "math-algebra-linear-2",
-                                            question: "What is the slope of the line y = 3x - 2?",
+                                            question: "What is the slope of the line \(y = 3x - 2\)?",
                                             options: ["2", "3", "-2", "-3"],
                                             correctAnswer: 1,
-                                            explanation: "In the slope-intercept form y = mx + b, m represents the slope. So for y = 3x - 2, the slope is 3.",
+                                            explanation: "In the slope-intercept form \(y = mx + b\), m represents the slope. So for \(y = 3x - 2\), the slope is 3.",
                                             tags: ["algebra", "linear equations", "slope"]
                                         }
                                     ]
@@ -774,10 +878,10 @@
                                     questions: [
                                         {
                                             id: "math-algebra-quad-1",
-                                            question: "What are the solutions to x² - 5x + 6 = 0?",
+                                            question: "What are the solutions to \(x^2 - 5x + 6 = 0\)?",
                                             options: ["x = 2, x = 3", "x = 1, x = 6", "x = -2, x = -3", "x = 2, x = -3"],
                                             correctAnswer: 0,
-                                            explanation: "The equation factors to (x-2)(x-3)=0, so the solutions are x=2 and x=3.",
+                                            explanation: "The equation factors to \((x-2)(x-3)=0\), so the solutions are x=2 and x=3.",
                                             tags: ["algebra", "quadratic equations", "factoring"]
                                         }
                                     ]
@@ -801,10 +905,10 @@
                                             id: "math-geometry-tri-1",
                                             question: "What is the Pythagorean theorem?",
                                             options: [
-                                                "a² + b² = c²",
+                                                "\(a^2 + b^2 = c^2\)",
                                                 "a + b = c",
-                                                "a² × b² = c²",
-                                                "a × b = c"
+                                                "\(a^2 \\times b^2 = c^2\)",
+                                                "\(a \\times b = c\)"
                                             ],
                                             correctAnswer: 0,
                                             explanation: "The Pythagorean theorem states that in a right triangle, the square of the hypotenuse is equal to the sum of the squares of the other two sides.",
@@ -821,6 +925,52 @@
                     name: "Science",
                     thumbnail: "science.jpg",
                     subjects: [
+                        {
+                            id: "biology",
+                            name: "Biology",
+                            thumbnail: "biology.jpg",
+                            topics: [
+                                {
+                                    id: "cell-biology",
+                                    name: "Cell Biology",
+                                    thumbnail: "cell-biology.jpg",
+                                    timeLimit: 480, // 8 minutes
+                                    negativeMarking: true,
+                                    marksPerQuestion: 1.5,
+                                    questions: [
+                                        {
+                                            id: "science-biology-cell-1",
+                                            question: "Which of the following are parts of a cell?",
+                                            options: [
+                                                "Nucleus",
+                                                "Mitochondria",
+                                                "Cell Membrane",
+                                                "Chloroplast",
+                                                "Ribosome",
+                                                "Endoplasmic Reticulum"
+                                            ],
+                                            correctAnswers: [0, 1, 2, 3, 4, 5], // All options are correct
+                                            explanation: "All listed options are fundamental parts of a cell. The nucleus contains genetic material, mitochondria produce energy, the cell membrane regulates what enters and exits the cell, chloroplasts perform photosynthesis in plant cells, ribosomes synthesize proteins, and the endoplasmic reticulum transports materials within the cell.",
+                                            tags: ["biology", "cell biology", "cell structure"],
+                                            multipleAnswers: true
+                                        },
+                                        {
+                                            id: "science-biology-cell-2",
+                                            question: "What is the function of mitochondria?",
+                                            options: [
+                                                "Protein synthesis",
+                                                "Cellular respiration",
+                                                "Photosynthesis",
+                                                "DNA replication"
+                                            ],
+                                            correctAnswer: 1,
+                                            explanation: "Mitochondria are known as the powerhouses of the cell. They perform cellular respiration, converting glucose and oxygen into ATP, the energy currency of the cell.",
+                                            tags: ["biology", "cell biology", "mitochondria"]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
                         {
                             id: "physics",
                             name: "Physics",
@@ -909,6 +1059,7 @@
         };
         let timerInterval = null;
         let timeLeft = 0;
+        let quizSettings = {};
 
         // DOM Elements
         const pages = document.querySelectorAll('.page');
@@ -1085,12 +1236,17 @@
             if (pageId === 'results') {
                 renderResults();
             }
+            
+            // Trigger MathJax to render formulas when showing a page with math
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typeset();
+            }
         }
 
         // Toggle between dark and light theme
         function toggleTheme() {
             document.body.classList.toggle('light-mode');
-            themeToggle.textContent = document.body.classList.contains('light-mode') ? '☀️' : '🌙';
+            themeToggle.textContent = document.body.classList.contains('light-mode') ? '🌙' : '☀️';
         }
 
         // Render classes on the classes page
@@ -1194,7 +1350,7 @@
             currentQuiz = shuffled.slice(0, 10);
             
             // Set default quiz settings
-            const quizSettings = {
+            quizSettings = {
                 timeLimit: quizData.defaultTimeLimit,
                 negativeMarking: quizData.defaultNegativeMarking,
                 marksPerQuestion: quizData.defaultMarksPerQuestion,
@@ -1223,7 +1379,7 @@
             }));
             
             // Get quiz settings from topic or use defaults
-            const quizSettings = {
+            quizSettings = {
                 timeLimit: topic.timeLimit || quizData.defaultTimeLimit,
                 negativeMarking: topic.negativeMarking !== undefined ? topic.negativeMarking : quizData.defaultNegativeMarking,
                 marksPerQuestion: topic.marksPerQuestion || quizData.defaultMarksPerQuestion,
@@ -1297,12 +1453,16 @@
             const questionNumber = document.getElementById('question-number');
             const questionText = document.getElementById('question-text');
             const optionsContainer = document.getElementById('options-container');
+            const answerTypeDisplay = document.getElementById('answer-type-display');
             
             // Update question number
             questionNumber.textContent = `Question ${currentQuestionIndex + 1} of ${currentQuiz.length}`;
             
-            // Update question text
-            questionText.textContent = question.question;
+            // Update question text with support for math formulas
+            questionText.innerHTML = question.question;
+            
+            // Update answer type display
+            answerTypeDisplay.textContent = `Answer Type: ${question.multipleAnswers ? 'Multiple' : 'Single'}`;
             
             // Clear previous options
             optionsContainer.innerHTML = '';
@@ -1311,24 +1471,29 @@
             question.options.forEach((option, index) => {
                 const optionElement = document.createElement('div');
                 optionElement.className = 'option';
-                if (userAnswers[currentQuestionIndex] === index) {
-                    optionElement.classList.add('selected');
-                }
                 
                 const optionInput = document.createElement('input');
-                optionInput.type = 'radio';
-                optionInput.name = 'quiz-option';
+                optionInput.type = question.multipleAnswers ? 'checkbox' : 'radio';
+                optionInput.name = question.multipleAnswers ? `question-${currentQuestionIndex}` : 'quiz-option';
                 optionInput.value = index;
-                optionInput.checked = userAnswers[currentQuestionIndex] === index;
+                
+                // Check if this option is selected
+                if (question.multipleAnswers) {
+                    optionInput.checked = userAnswers[currentQuestionIndex] && userAnswers[currentQuestionIndex].includes(index);
+                } else {
+                    optionInput.checked = userAnswers[currentQuestionIndex] === index;
+                }
+                
                 optionInput.addEventListener('change', () => {
-                    selectOption(index);
+                    selectOption(index, question.multipleAnswers);
                 });
                 
-                const optionLabel = document.createElement('span');
-                optionLabel.textContent = option;
+                const optionContent = document.createElement('div');
+                optionContent.className = 'option-content';
+                optionContent.innerHTML = option;
                 
                 optionElement.appendChild(optionInput);
-                optionElement.appendChild(optionLabel);
+                optionElement.appendChild(optionContent);
                 
                 optionsContainer.appendChild(optionElement);
             });
@@ -1339,11 +1504,33 @@
                 currentQuestionIndex < currentQuiz.length - 1 ? 'flex' : 'none';
             document.getElementById('submit-quiz').style.display = 
                 currentQuestionIndex === currentQuiz.length - 1 ? 'flex' : 'none';
+            
+            // Trigger MathJax to render formulas
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typeset([questionText, optionsContainer]);
+            }
         }
 
         // Select an option for the current question
-        function selectOption(optionIndex) {
-            userAnswers[currentQuestionIndex] = optionIndex;
+        function selectOption(optionIndex, isMultiple) {
+            if (isMultiple) {
+                // For multiple answers
+                if (!userAnswers[currentQuestionIndex]) {
+                    userAnswers[currentQuestionIndex] = [];
+                }
+                
+                if (userAnswers[currentQuestionIndex].includes(optionIndex)) {
+                    // Remove if already selected
+                    userAnswers[currentQuestionIndex] = userAnswers[currentQuestionIndex].filter(i => i !== optionIndex);
+                } else {
+                    // Add if not selected
+                    userAnswers[currentQuestionIndex].push(optionIndex);
+                }
+            } else {
+                // For single answer
+                userAnswers[currentQuestionIndex] = optionIndex;
+            }
+            
             displayQuestion(); // Refresh to update selected state
         }
 
@@ -1394,37 +1581,58 @@
             const results = [];
             
             // Get quiz settings
-            const negativeMarking = currentTopic ? 
-                (currentTopic.negativeMarking !== undefined ? currentTopic.negativeMarking : quizData.defaultNegativeMarking) : 
-                quizData.defaultNegativeMarking;
-                
-            const marksPerQuestion = currentTopic ? 
-                (currentTopic.marksPerQuestion || quizData.defaultMarksPerQuestion) : 
-                quizData.defaultMarksPerQuestion;
+            const negativeMarking = quizSettings.negativeMarking;
+            const marksPerQuestion = quizSettings.marksPerQuestion;
             
             currentQuiz.forEach((question, index) => {
                 maxMarks += marksPerQuestion;
-                const isCorrect = userAnswers[index] === question.correctAnswer;
+                let isCorrect = false;
                 let questionMarks = 0;
                 
-                if (isCorrect) {
-                    questionMarks = marksPerQuestion;
-                    totalMarks += marksPerQuestion;
-                } else if (negativeMarking && userAnswers[index] !== null) {
-                    // Apply negative marking for incorrect answer
-                    questionMarks = -marksPerQuestion / 2;
-                    totalMarks -= marksPerQuestion / 2;
+                if (question.multipleAnswers) {
+                    // For multiple answer questions
+                    const userAnswer = userAnswers[index] || [];
+                    const correctAnswers = question.correctAnswers || [];
+                    
+                    // Check if answers match (order doesn't matter)
+                    const correctSelected = userAnswer.filter(ans => correctAnswers.includes(ans)).length;
+                    const incorrectSelected = userAnswer.filter(ans => !correctAnswers.includes(ans)).length;
+                    const missingCorrect = correctAnswers.filter(ans => !userAnswer.includes(ans)).length;
+                    
+                    isCorrect = incorrectSelected === 0 && missingCorrect === 0;
+                    
+                    if (isCorrect) {
+                        questionMarks = marksPerQuestion;
+                        totalMarks += marksPerQuestion;
+                    } else if (negativeMarking) {
+                        // Apply negative marking for incorrect answers
+                        questionMarks = -((incorrectSelected * marksPerQuestion) / (correctAnswers.length * 2));
+                        totalMarks += questionMarks;
+                    }
+                } else {
+                    // For single answer questions
+                    isCorrect = userAnswers[index] === question.correctAnswer;
+                    
+                    if (isCorrect) {
+                        questionMarks = marksPerQuestion;
+                        totalMarks += marksPerQuestion;
+                    } else if (negativeMarking && userAnswers[index] !== null) {
+                        // Apply negative marking for incorrect answer
+                        questionMarks = -marksPerQuestion / 2;
+                        totalMarks -= marksPerQuestion / 2;
+                    }
                 }
                 
                 results.push({
                     question: question.question,
                     options: question.options,
                     userAnswer: userAnswers[index],
-                    correctAnswer: question.correctAnswer,
+                    correctAnswer: question.correctAnswer || question.correctAnswers,
                     explanation: question.explanation,
                     tags: question.tags,
                     isCorrect: isCorrect,
-                    marks: questionMarks
+                    marks: questionMarks,
+                    multipleAnswers: question.multipleAnswers
                 });
             });
             
@@ -1503,7 +1711,7 @@
             
             // Update score display
             document.getElementById('score-display').textContent = 
-                `${latestResult.totalMarks}/${latestResult.maxMarks} (${Math.round(latestResult.score * 100)}%)`;
+                `${latestResult.totalMarks.toFixed(1)}/${latestResult.maxMarks} (${Math.round(latestResult.score * 100)}%)`;
             
             // Update date display
             const date = new Date(latestResult.date);
@@ -1637,14 +1845,33 @@
             result.results.forEach((questionResult, index) => {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = 'question';
+                
+                let userAnswerText = 'Not answered';
+                if (questionResult.multipleAnswers) {
+                    userAnswerText = questionResult.userAnswer && questionResult.userAnswer.length > 0 
+                        ? questionResult.userAnswer.map(i => questionResult.options[i]).join(', ') 
+                        : 'Not answered';
+                } else {
+                    userAnswerText = questionResult.userAnswer !== null 
+                        ? questionResult.options[questionResult.userAnswer] 
+                        : 'Not answered';
+                }
+                
+                let correctAnswerText;
+                if (questionResult.multipleAnswers) {
+                    correctAnswerText = questionResult.correctAnswer.map(i => questionResult.options[i]).join(', ');
+                } else {
+                    correctAnswerText = questionResult.options[questionResult.correctAnswer];
+                }
+                
                 questionDiv.innerHTML = `
                     <h4>Question ${index + 1}: ${questionResult.question}</h4>
-                    <p>Your answer: ${questionResult.userAnswer !== null ? questionResult.options[questionResult.userAnswer] : 'Not answered'} 
+                    <p>Your answer: ${userAnswerText} 
                        <span style="color: ${questionResult.isCorrect ? '#4caf50' : '#ff3b30'}">
                        (${questionResult.isCorrect ? 'Correct' : 'Incorrect'})</span>
                     </p>
                     ${!questionResult.isCorrect ? 
-                      `<p>Correct answer: ${questionResult.options[questionResult.correctAnswer]}</p>` : ''}
+                      `<p>Correct answer: ${correctAnswerText}</p>` : ''}
                     <p>Marks: ${questionResult.marks > 0 ? '+' : ''}${questionResult.marks.toFixed(1)}</p>
                     <div class="explanation">
                         <p><strong>Explanation:</strong> ${questionResult.explanation}</p>
@@ -1655,6 +1882,11 @@
                 `;
                 questionsReview.appendChild(questionDiv);
             });
+            
+            // Trigger MathJax to render formulas
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typeset([questionsReview]);
+            }
         }
 
         // Render quiz history
@@ -1671,24 +1903,48 @@
                 const date = new Date(result.date);
                 const historyItem = document.createElement('div');
                 historyItem.className = 'history-item';
+                
                 historyItem.innerHTML = `
-                    <h4>${result.type === 'daily' ? 'Daily Quiz' : result.topic} - ${date.toLocaleDateString()}</h4>
-                    <p>Score: ${result.totalMarks}/${result.maxMarks} (${Math.round(result.score * 100)}%)</p>
-                    <p>${result.class ? result.class + ' • ' : ''}${result.subject ? result.subject : ''}</p>
+                    <div class="history-info">
+                        <h4>${result.type === 'daily' ? 'Daily Quiz' : result.topic} - ${date.toLocaleDateString()}</h4>
+                        <p>Score: ${result.totalMarks.toFixed(1)}/${result.maxMarks} (${Math.round(result.score * 100)}%)</p>
+                        <p>${result.class ? result.class + ' • ' : ''}${result.subject ? result.subject : ''}</p>
+                    </div>
+                    <div class="history-actions">
+                        ${result.type === 'topic' ? '<button class="btn btn-small retry-history-btn"><i class="fas fa-redo"></i> Retry</button>' : ''}
+                    </div>
                 `;
-                historyItem.addEventListener('click', () => {
-                    // Show this specific result
-                    showSpecificResult(index);
-                });
+                
+                // Add retry functionality for topic quizzes
+                if (result.type === 'topic') {
+                    const retryBtn = historyItem.querySelector('.retry-history-btn');
+                    retryBtn.addEventListener('click', () => {
+                        // Find the topic in the quiz data
+                        let topicToRetry = null;
+                        quizData.classes.forEach(cls => {
+                            if (cls.name === result.class) {
+                                cls.subjects.forEach(subject => {
+                                    if (subject.name === result.subject) {
+                                        subject.topics.forEach(topic => {
+                                            if (topic.name === result.topic) {
+                                                topicToRetry = topic;
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                        
+                        if (topicToRetry) {
+                            startTopicQuiz(topicToRetry);
+                        } else {
+                            alert('Could not find this quiz to retry.');
+                        }
+                    });
+                }
+                
                 historyContainer.appendChild(historyItem);
             });
-        }
-
-        // Show a specific result from history
-        function showSpecificResult(index) {
-            // For simplicity, we'll just show the latest result
-            // In a real app, you would show the selected result
-            renderResults();
         }
 
         // Initialize the app when the DOM is loaded

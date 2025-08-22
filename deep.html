@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizMaster Pro - Test Your Knowledge</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-bg: #0a0a0a;
+            --secondary-bg: #1a1a1a;
+            --primary-text: #ffffff;
+            --accent: #ff3b30;
+            --secondary-accent: #ff6b66;
+            --card-bg: #222;
+            --border-color: #333;
+            --option-selected: #3a3aff;
+            --option-correct: #4caf50;
+            --option-incorrect: #ff5252;
+            --timer-warning: #ff9800;
+            --timer-critical: #f44336;
+        }
+
+        .light-mode {
+            --primary-bg: #fff;
+            --secondary-bg: #f5f5f5;
+            --primary-text: #000;
+            --accent: #ff3b30;
+            --secondary-accent: #ff6b66;
+            --card-bg: #f9f9f9;
+            --border-color: #ddd;
+            --option-selected: #5678ff;
+            --option-correct: #4caf50;
+            --option-incorrect: #ff5252;
+            --timer-warning: #ff9800;
+            --timer-critical: #f44336;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--primary-text);
+            transition: all 0.3s ease;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background-color: var(--secondary-bg);
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-right: 10px;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav li {
+            margin-left: 20px;
+        }
+
+        nav a {
+            color: var(--primary-text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        nav a i {
+            margin-right: 8px;
+        }
+
+        nav a:hover {
+            color: var(--accent);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--primary-text);
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-left: 15px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            margin-left: 20px;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .page {
+            display: none;
+            padding: 30px 0;
+            min-height: calc(100vh - 120px);
+        }
+
+        .active {
+            display: block;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            color: #aaa;
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary-accent);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background-color: #444;
+        }
+
+        .btn-secondary:hover {
+            background-color: #555;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-img {
+            height: 160px;
+            background-color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .card-content {
+            padding: 15px;
+        }
+
+        .card h3 {
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .quiz-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 8px 15px;
+            border-radius: 5px;
+            background-color: var(--secondary-bg);
+        }
+
+        .timer.warning {
+            color: var(--timer-warning);
+            animation: pulse 1s infinite;
+        }
+
+        .timer.critical {
+            color: var(--timer-critical);
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .question {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .question-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .option {
+            padding: 15px;
+            background-color: var(--secondary-bg);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .option:hover {
+            background-color: #333;
+        }
+
+        .option.selected {
+            background-color: var(--option-selected);
+        }
+
+        .option.correct {
+            background-color: var(--option-correct);
+        }
+
+        .option.incorrect {
+            background-color: var(--option-incorrect);
+        }
+
+        .option input {
+            margin-right: 10px;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .result-summary {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .score-display {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+
+        .charts {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        @media (min-width: 768px) {
+            .charts {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .chart-container {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .history-item {
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tag {
+            display: inline-block;
+            background-color: #333;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        .explanation {
+            background-color: var(--secondary-bg);
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .badges-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .badge {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .badge i {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .badge.unlocked {
+            background: linear-gradient(145deg, #ff3b30, #c62828);
+        }
+
+        .badge-name {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .profile-section {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            background-color: var(--secondary-bg);
+            color: var(--primary-text);
+        }
+
+        footer {
+            background-color: var(--secondary-bg);
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        /* Mobile menu */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--primary-text);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            nav ul {
+                display: none;
+                position: absolute;
+                top: 70px;
+                left: 0;
+                right: 0;
+                background-color: var(--secondary-bg);
+                flex-direction: column;
+                padding: 20px;
+                z-index: 100;
+            }
+
+            nav ul.active {
+                display: flex;
+            }
+
+            nav li {
+                margin: 10px 0;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .header-content {
+                flex-wrap: wrap;
+            }
+
+            .user-profile {
+                order: 3;
+                width: 100%;
+                justify-content: center;
+                margin-top: 15px;
+                margin-left: 0;
+            }
+
+            .quiz-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .timer {
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <i class="fas fa-brain"></i> QuizMaster Pro
+            </div>
+            <button class="menu-toggle">☰</button>
+            <nav>
+                <ul>
+                    <li><a href="#" class="nav-link" data-page="home"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="#" class="nav-link" data-page="classes"><i class="fas fa-book"></i> Classes</a></li>
+                    <li><a href="#" class="nav-link" data-page="results"><i class="fas fa-chart-line"></i> Results</a></li>
+                    <li><a href="#" class="nav-link" data-page="profile"><i class="fas fa-user"></i> Profile</a></li>
+                </ul>
+            </nav>
+            <div class="user-profile" id="user-profile-btn">
+                <div class="user-avatar">JS</div>
+                <span>John Smith</span>
+            </div>
+            <button class="theme-toggle">🌙</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Home Page -->
+        <section id="home" class="page active">
+            <div class="hero">
+                <h1>Test Your Knowledge Daily</h1>
+                <p>Take a new quiz every day with 10 randomly selected questions from our extensive database. Challenge yourself and track your progress over time.</p>
+                <button id="start-quiz" class="btn"><i class="fas fa-play"></i> Start Today's Quiz</button>
+                <div id="quiz-taken-message" style="display: none; margin-top: 20px;">
+                    <p>You've already taken today's quiz. Come back tomorrow for a new challenge!</p>
+                    <button id="view-results" class="btn" style="margin-top: 10px;"><i class="fas fa-chart-bar"></i> View Results</button>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <h2>Your Progress</h2>
+                <div class="badges-container">
+                    <div class="badge unlocked">
+                        <i class="fas fa-medal"></i>
+                        <span class="badge-name">Noob</span>
+                    </div>
+                    <div class="badge unlocked">
+                        <i class="fas fa-star"></i>
+                        <span class="badge-name">Expert</span>
+                    </div>
+                    <div class="badge">
+                        <i class="fas fa-crown"></i>
+                        <span class="badge-name">Master</span>
+                    </div>
+                    <div class="badge">
+                        <i class="fas fa-trophy"></i>
+                        <span class="badge-name">Grand Master</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Classes Page -->
+        <section id="classes" class="page">
+            <h2>Classes & Subjects</h2>
+            <div class="grid" id="classes-grid">
+                <!-- Classes will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <!-- Subjects Page -->
+        <section id="subjects" class="page">
+            <h2 id="subjects-title">Subjects</h2>
+            <div class="grid" id="subjects-grid">
+                <!-- Subjects will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <!-- Topics Page -->
+        <section id="topics" class="page">
+            <h2 id="topics-title">Topics</h2>
+            <div class="grid" id="topics-grid">
+                <!-- Topics will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <!-- Quiz Page -->
+        <section id="quiz" class="page">
+            <div class="quiz-container">
+                <div class="quiz-header">
+                    <div id="question-number">Question 1 of 10</div>
+                    <div class="timer" id="quiz-timer">10:00</div>
+                </div>
+                <div class="question-meta">
+                    <span id="marks-display">Marks: 1</span>
+                    <span id="negative-marking-display">Negative Marking: No</span>
+                </div>
+                <div class="question" id="question-text">
+                    <!-- Question will be inserted here -->
+                </div>
+                <div class="options" id="options-container">
+                    <!-- Options will be inserted here -->
+                </div>
+                <div class="navigation">
+                    <button id="prev-question" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Previous</button>
+                    <button id="next-question" class="btn"><i class="fas fa-arrow-right"></i> Next</button>
+                    <button id="submit-quiz" class="btn" style="display: none;"><i class="fas fa-paper-plane"></i> Submit Quiz</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Page -->
+        <section id="results" class="page">
+            <h2>Your Quiz Results</h2>
+            <div class="result-summary">
+                <div class="score-display" id="score-display">8/10 (80%)</div>
+                <p id="quiz-date">Date: June 15, 2023</p>
+                <p id="quiz-type">Quiz Type: Daily Challenge</p>
+                <button id="retry-quiz" class="btn" style="margin-top: 15px;"><i class="fas fa-redo"></i> Retry This Quiz</button>
+            </div>
+
+            <div class="charts">
+                <div class="chart-container">
+                    <canvas id="score-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="category-chart"></canvas>
+                </div>
+            </div>
+
+            <div id="questions-review">
+                <h3 style="margin: 30px 0 15px;">Question Review</h3>
+                <!-- Questions review will be inserted here -->
+            </div>
+
+            <div id="history">
+                <h3 style="margin: 30px 0 15px;">Quiz History</h3>
+                <!-- History will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Profile Page -->
+        <section id="profile" class="page">
+            <h2>Your Profile</h2>
+            <div class="profile-section">
+                <div class="form-group">
+                    <label for="user-name">Full Name</label>
+                    <input type="text" id="user-name" placeholder="Enter your name">
+                </div>
+                <div class="form-group">
+                    <label for="user-email">Email</label>
+                    <input type="email" id="user-email" placeholder="Enter your email">
+                </div>
+                <button id="save-profile" class="btn"><i class="fas fa-save"></i> Save Profile</button>
+            </div>
+
+            <h3>Your Badges</h3>
+            <div class="badges-container">
+                <div class="badge unlocked">
+                    <i class="fas fa-medal"></i>
+                    <span class="badge-name">Noob</span>
+                </div>
+                <div class="badge unlocked">
+                    <i class="fas fa-star"></i>
+                    <span class="badge-name">Expert</span>
+                </div>
+                <div class="badge">
+                    <i class="fas fa-crown"></i>
+                    <span class="badge-name">Master</span>
+                </div>
+                <div class="badge">
+                    <i class="fas fa-trophy"></i>
+                    <span class="badge-name">Grand Master</span>
+                </div>
+                <div class="badge">
+                    <i class="fas fa-dragon"></i>
+                    <span class="badge-name">Legendary</span>
+                </div>
+                <div class="badge">
+                    <i class="fas fa-fire"></i>
+                    <span class="badge-name">Legendary Grand</span>
+                </div>
+                <div class="badge">
+                    <i class="fas fa-hat-cowboy"></i>
+                    <span class="badge-name">Legendary Grand Master</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 QuizMaster Pro. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Quiz Data (in a real app, this would be in a separate JSON file)
+        const quizData = {
+            classes: [
+                {
+                    id: "math",
+                    name: "Mathematics",
+                    thumbnail: "math.jpg",
+                    subjects: [
+                        {
+                            id: "algebra",
+                            name: "Algebra",
+                            thumbnail: "algebra.jpg",
+                            topics: [
+                                {
+                                    id: "linear-equations",
+                                    name: "Linear Equations",
+                                    thumbnail: "linear-equations.jpg",
+                                    timeLimit: 300, // 5 minutes
+                                    negativeMarking: false,
+                                    marksPerQuestion: 1,
+                                    questions: [
+                                        {
+                                            id: "math-algebra-linear-1",
+                                            question: "Solve for x: 2x + 5 = 13",
+                                            options: ["x = 4", "x = 5", "x = 6", "x = 7"],
+                                            correctAnswer: 0,
+                                            explanation: "Subtract 5 from both sides: 2x = 8. Then divide both sides by 2: x = 4.",
+                                            tags: ["algebra", "linear equations", "solving equations"]
+                                        },
+                                        {
+                                            id: "math-algebra-linear-2",
+                                            question: "What is the slope of the line y = 3x - 2?",
+                                            options: ["2", "3", "-2", "-3"],
+                                            correctAnswer: 1,
+                                            explanation: "In the slope-intercept form y = mx + b, m represents the slope. So for y = 3x - 2, the slope is 3.",
+                                            tags: ["algebra", "linear equations", "slope"]
+                                        }
+                                    ]
+                                },
+                                {
+                                    id: "quadratic-equations",
+                                    name: "Quadratic Equations",
+                                    thumbnail: "quadratic-equations.jpg",
+                                    timeLimit: 420, // 7 minutes
+                                    negativeMarking: true,
+                                    marksPerQuestion: 2,
+                                    questions: [
+                                        {
+                                            id: "math-algebra-quad-1",
+                                            question: "What are the solutions to x² - 5x + 6 = 0?",
+                                            options: ["x = 2, x = 3", "x = 1, x = 6", "x = -2, x = -3", "x = 2, x = -3"],
+                                            correctAnswer: 0,
+                                            explanation: "The equation factors to (x-2)(x-3)=0, so the solutions are x=2 and x=3.",
+                                            tags: ["algebra", "quadratic equations", "factoring"]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "geometry",
+                            name: "Geometry",
+                            thumbnail: "geometry.jpg",
+                            topics: [
+                                {
+                                    id: "triangles",
+                                    name: "Triangles",
+                                    thumbnail: "triangles.jpg",
+                                    timeLimit: 360, // 6 minutes
+                                    negativeMarking: false,
+                                    marksPerQuestion: 1,
+                                    questions: [
+                                        {
+                                            id: "math-geometry-tri-1",
+                                            question: "What is the Pythagorean theorem?",
+                                            options: [
+                                                "a² + b² = c²",
+                                                "a + b = c",
+                                                "a² × b² = c²",
+                                                "a × b = c"
+                                            ],
+                                            correctAnswer: 0,
+                                            explanation: "The Pythagorean theorem states that in a right triangle, the square of the hypotenuse is equal to the sum of the squares of the other two sides.",
+                                            tags: ["geometry", "triangles", "pythagorean theorem"]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "science",
+                    name: "Science",
+                    thumbnail: "science.jpg",
+                    subjects: [
+                        {
+                            id: "physics",
+                            name: "Physics",
+                            thumbnail: "physics.jpg",
+                            topics: [
+                                {
+                                    id: "mechanics",
+                                    name: "Mechanics",
+                                    thumbnail: "mechanics.jpg",
+                                    timeLimit: 480, // 8 minutes
+                                    negativeMarking: true,
+                                    marksPerQuestion: 1.5,
+                                    questions: [
+                                        {
+                                            id: "science-physics-mech-1",
+                                            question: "What is Newton's first law of motion?",
+                                            options: [
+                                                "An object at rest stays at rest unless acted upon",
+                                                "F = ma",
+                                                "For every action, there is an equal and opposite reaction",
+                                                "Energy cannot be created or destroyed"
+                                            ],
+                                            correctAnswer: 0,
+                                            explanation: "Newton's first law states that an object at rest will remain at rest, and an object in motion will remain in motion with a constant velocity, unless acted upon by a net external force.",
+                                            tags: ["physics", "mechanics", "newton's laws"]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "chemistry",
+                            name: "Chemistry",
+                            thumbnail: "chemistry.jpg",
+                            topics: [
+                                {
+                                    id: "periodic-table",
+                                    name: "Periodic Table",
+                                    thumbnail: "periodic-table.jpg",
+                                    timeLimit: 240, // 4 minutes
+                                    negativeMarking: false,
+                                    marksPerQuestion: 1,
+                                    questions: [
+                                        {
+                                            id: "science-chemistry-pt-1",
+                                            question: "What is the atomic number of Oxygen?",
+                                            options: ["8", "16", "6", "10"],
+                                            correctAnswer: 0,
+                                            explanation: "Oxygen has 8 protons, so its atomic number is 8.",
+                                            tags: ["chemistry", "periodic table", "elements"]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            badges: [
+                { id: "noob", name: "Noob", threshold: 0, icon: "fas fa-medal" },
+                { id: "expert", name: "Expert", threshold: 50, icon: "fas fa-star" },
+                { id: "master", name: "Master", threshold: 70, icon: "fas fa-crown" },
+                { id: "grand-master", name: "Grand Master", threshold: 85, icon: "fas fa-trophy" },
+                { id: "legendary", name: "Legendary", threshold: 90, icon: "fas fa-dragon" },
+                { id: "legendary-grand", name: "Legendary Grand", threshold: 95, icon: "fas fa-fire" },
+                { id: "legendary-grand-master", name: "Legendary Grand Master", threshold: 98, icon: "fas fa-hat-cowboy" }
+            ],
+            defaultTimeLimit: 600, // 10 minutes
+            defaultNegativeMarking: false,
+            defaultMarksPerQuestion: 1
+        };
+
+        // App State
+        let currentPage = 'home';
+        let currentClass = null;
+        let currentSubject = null;
+        let currentTopic = null;
+        let currentQuiz = [];
+        let currentQuestionIndex = 0;
+        let userAnswers = [];
+        let quizResults = [];
+        let userProfile = {
+            name: "John Smith",
+            email: "john@example.com",
+            badges: ["noob", "expert"]
+        };
+        let timerInterval = null;
+        let timeLeft = 0;
+
+        // DOM Elements
+        const pages = document.querySelectorAll('.page');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const themeToggle = document.querySelector('.theme-toggle');
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navMenu = document.querySelector('nav ul');
+
+        // Initialize the app
+        function init() {
+            loadQuizResults();
+            loadUserProfile();
+            checkDailyQuiz();
+            renderClasses();
+            updateUserProfileUI();
+            setupEventListeners();
+        }
+
+        // Load user profile from localStorage
+        function loadUserProfile() {
+            const savedProfile = localStorage.getItem('userProfile');
+            if (savedProfile) {
+                userProfile = JSON.parse(savedProfile);
+            }
+        }
+
+        // Save user profile to localStorage
+        function saveUserProfile() {
+            localStorage.setItem('userProfile', JSON.stringify(userProfile));
+        }
+
+        // Update UI with user profile data
+        function updateUserProfileUI() {
+            const userAvatar = document.querySelector('.user-avatar');
+            const userName = document.querySelector('.user-profile span');
+            
+            if (userProfile.name) {
+                const initials = userProfile.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                userAvatar.textContent = initials;
+                userName.textContent = userProfile.name;
+            }
+            
+            // Update profile form
+            const userNameInput = document.getElementById('user-name');
+            const userEmailInput = document.getElementById('user-email');
+            
+            if (userNameInput) userNameInput.value = userProfile.name || '';
+            if (userEmailInput) userEmailInput.value = userProfile.email || '';
+            
+            // Update badges
+            updateBadgesUI();
+        }
+
+        // Update badges UI based on user achievements
+        function updateBadgesUI() {
+            const badgeElements = document.querySelectorAll('.badge');
+            
+            badgeElements.forEach(badgeElement => {
+                const badgeNameElement = badgeElement.querySelector('.badge-name');
+                if (badgeNameElement) {
+                    const badgeName = badgeNameElement.textContent.trim().toLowerCase().replace(/\s+/g, '-');
+                    
+                    if (userProfile.badges && userProfile.badges.includes(badgeName)) {
+                        badgeElement.classList.add('unlocked');
+                    } else {
+                        badgeElement.classList.remove('unlocked');
+                    }
+                }
+            });
+        }
+
+        // Check if user has taken today's quiz
+        function checkDailyQuiz() {
+            const today = new Date().toDateString();
+            const lastQuizDate = localStorage.getItem('lastQuizDate');
+            const startQuizBtn = document.getElementById('start-quiz');
+            const quizTakenMsg = document.getElementById('quiz-taken-message');
+            
+            if (lastQuizDate === today) {
+                startQuizBtn.style.display = 'none';
+                quizTakenMsg.style.display = 'block';
+            } else {
+                startQuizBtn.style.display = 'block';
+                quizTakenMsg.style.display = 'none';
+            }
+        }
+
+        // Load quiz results from localStorage
+        function loadQuizResults() {
+            const savedResults = localStorage.getItem('quizResults');
+            if (savedResults) {
+                quizResults = JSON.parse(savedResults);
+            }
+        }
+
+        // Save quiz results to localStorage
+        function saveQuizResults() {
+            localStorage.setItem('quizResults', JSON.stringify(quizResults));
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Navigation
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showPage(link.dataset.page);
+                });
+            });
+
+            // Theme toggle
+            themeToggle.addEventListener('click', toggleTheme);
+
+            // Mobile menu toggle
+            menuToggle.addEventListener('click', () => {
+                navMenu.classList.toggle('active');
+            });
+
+            // User profile button
+            document.getElementById('user-profile-btn').addEventListener('click', () => {
+                showPage('profile');
+            });
+
+            // Start quiz button
+            document.getElementById('start-quiz').addEventListener('click', startDailyQuiz);
+            
+            // View results button
+            document.getElementById('view-results').addEventListener('click', () => {
+                showPage('results');
+                renderResults();
+            });
+
+            // Save profile button
+            document.getElementById('save-profile').addEventListener('click', saveProfile);
+            
+            // Retry quiz button
+            document.getElementById('retry-quiz').addEventListener('click', retryQuiz);
+
+            // Quiz navigation
+            document.getElementById('prev-question').addEventListener('click', showPreviousQuestion);
+            document.getElementById('next-question').addEventListener('click', showNextQuestion);
+            document.getElementById('submit-quiz').addEventListener('click', submitQuiz);
+        }
+
+        // Save user profile
+        function saveProfile() {
+            const userNameInput = document.getElementById('user-name');
+            const userEmailInput = document.getElementById('user-email');
+            
+            userProfile.name = userNameInput.value;
+            userProfile.email = userEmailInput.value;
+            
+            saveUserProfile();
+            updateUserProfileUI();
+            
+            alert('Profile saved successfully!');
+        }
+
+        // Show a specific page
+        function showPage(pageId) {
+            // Hide all pages
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Show the requested page
+            document.getElementById(pageId).classList.add('active');
+            currentPage = pageId;
+
+            // Close mobile menu if open
+            navMenu.classList.remove('active');
+
+            // If showing results page, render the results
+            if (pageId === 'results') {
+                renderResults();
+            }
+        }
+
+        // Toggle between dark and light theme
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            themeToggle.textContent = document.body.classList.contains('light-mode') ? '☀️' : '🌙';
+        }
+
+        // Render classes on the classes page
+        function renderClasses() {
+            const classesGrid = document.getElementById('classes-grid');
+            classesGrid.innerHTML = '';
+
+            quizData.classes.forEach(cls => {
+                const classCard = document.createElement('div');
+                classCard.className = 'card';
+                classCard.innerHTML = `
+                    <div class="card-img">${cls.name} Image</div>
+                    <div class="card-content">
+                        <h3>${cls.name}</h3>
+                    </div>
+                `;
+                classCard.addEventListener('click', () => {
+                    showSubjects(cls);
+                });
+                classesGrid.appendChild(classCard);
+            });
+        }
+
+        // Show subjects for a selected class
+        function showSubjects(cls) {
+            currentClass = cls;
+            const subjectsGrid = document.getElementById('subjects-grid');
+            const subjectsTitle = document.getElementById('subjects-title');
+            
+            subjectsTitle.textContent = `${cls.name} Subjects`;
+            subjectsGrid.innerHTML = '';
+
+            cls.subjects.forEach(subject => {
+                const subjectCard = document.createElement('div');
+                subjectCard.className = 'card';
+                subjectCard.innerHTML = `
+                    <div class="card-img">${subject.name} Image</div>
+                    <div class="card-content">
+                        <h3>${subject.name}</h3>
+                    </div>
+                `;
+                subjectCard.addEventListener('click', () => {
+                    showTopics(cls, subject);
+                });
+                subjectsGrid.appendChild(subjectCard);
+            });
+
+            showPage('subjects');
+        }
+
+        // Show topics for a selected subject
+        function showTopics(cls, subject) {
+            currentSubject = subject;
+            const topicsGrid = document.getElementById('topics-grid');
+            const topicsTitle = document.getElementById('topics-title');
+            
+            topicsTitle.textContent = `${cls.name} - ${subject.name} Topics`;
+            topicsGrid.innerHTML = '';
+
+            subject.topics.forEach(topic => {
+                const topicCard = document.createElement('div');
+                topicCard.className = 'card';
+                topicCard.innerHTML = `
+                    <div class="card-img">${topic.name} Image</div>
+                    <div class="card-content">
+                        <h3>${topic.name}</h3>
+                        <p>${topic.questions.length} questions</p>
+                        <p>Time: ${topic.timeLimit ? (topic.timeLimit / 60) + ' mins' : 'Default'}</p>
+                    </div>
+                `;
+                topicCard.addEventListener('click', () => {
+                    startTopicQuiz(topic);
+                });
+                topicsGrid.appendChild(topicCard);
+            });
+
+            showPage('topics');
+        }
+
+        // Start a daily quiz with random questions
+        function startDailyQuiz() {
+            // Get all questions from all topics
+            const allQuestions = [];
+            quizData.classes.forEach(cls => {
+                cls.subjects.forEach(subject => {
+                    subject.topics.forEach(topic => {
+                        topic.questions.forEach(question => {
+                            allQuestions.push({
+                                ...question,
+                                topic: topic.name,
+                                subject: subject.name,
+                                class: cls.name
+                            });
+                        });
+                    });
+                });
+            });
+
+            // Shuffle and select 10 questions
+            const shuffled = allQuestions.sort(() => 0.5 - Math.random());
+            currentQuiz = shuffled.slice(0, 10);
+            
+            // Set default quiz settings
+            const quizSettings = {
+                timeLimit: quizData.defaultTimeLimit,
+                negativeMarking: quizData.defaultNegativeMarking,
+                marksPerQuestion: quizData.defaultMarksPerQuestion,
+                type: 'daily'
+            };
+            
+            // Initialize quiz state
+            currentQuestionIndex = 0;
+            userAnswers = new Array(currentQuiz.length).fill(null);
+            
+            // Start the quiz
+            showPage('quiz');
+            displayQuestion();
+            startTimer(quizSettings.timeLimit);
+            updateQuizMeta(quizSettings);
+        }
+
+        // Start a quiz from a specific topic
+        function startTopicQuiz(topic) {
+            currentTopic = topic;
+            currentQuiz = topic.questions.map(q => ({
+                ...q,
+                topic: topic.name,
+                subject: currentSubject.name,
+                class: currentClass.name
+            }));
+            
+            // Get quiz settings from topic or use defaults
+            const quizSettings = {
+                timeLimit: topic.timeLimit || quizData.defaultTimeLimit,
+                negativeMarking: topic.negativeMarking !== undefined ? topic.negativeMarking : quizData.defaultNegativeMarking,
+                marksPerQuestion: topic.marksPerQuestion || quizData.defaultMarksPerQuestion,
+                type: 'topic'
+            };
+            
+            // Initialize quiz state
+            currentQuestionIndex = 0;
+            userAnswers = new Array(currentQuiz.length).fill(null);
+            
+            // Start the quiz
+            showPage('quiz');
+            displayQuestion();
+            startTimer(quizSettings.timeLimit);
+            updateQuizMeta(quizSettings);
+        }
+
+        // Update quiz metadata display
+        function updateQuizMeta(settings) {
+            const marksDisplay = document.getElementById('marks-display');
+            const negativeMarkingDisplay = document.getElementById('negative-marking-display');
+            
+            marksDisplay.textContent = `Marks: ${settings.marksPerQuestion}`;
+            negativeMarkingDisplay.textContent = `Negative Marking: ${settings.negativeMarking ? 'Yes' : 'No'}`;
+        }
+
+        // Start the quiz timer
+        function startTimer(seconds) {
+            timeLeft = seconds;
+            updateTimerDisplay();
+            
+            // Clear any existing timer
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            // Start new timer
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    submitQuiz();
+                    alert('Time is up! Your quiz has been submitted.');
+                }
+            }, 1000);
+        }
+
+        // Update timer display
+        function updateTimerDisplay() {
+            const timerElement = document.getElementById('quiz-timer');
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            
+            timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            
+            // Update timer color based on remaining time
+            timerElement.classList.remove('warning', 'critical');
+            
+            if (timeLeft < 60) {
+                timerElement.classList.add('critical');
+            } else if (timeLeft < 120) {
+                timerElement.classList.add('warning');
+            }
+        }
+
+        // Display the current question
+        function displayQuestion() {
+            const question = currentQuiz[currentQuestionIndex];
+            const questionNumber = document.getElementById('question-number');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            
+            // Update question number
+            questionNumber.textContent = `Question ${currentQuestionIndex + 1} of ${currentQuiz.length}`;
+            
+            // Update question text
+            questionText.textContent = question.question;
+            
+            // Clear previous options
+            optionsContainer.innerHTML = '';
+            
+            // Add new options
+            question.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                if (userAnswers[currentQuestionIndex] === index) {
+                    optionElement.classList.add('selected');
+                }
+                
+                const optionInput = document.createElement('input');
+                optionInput.type = 'radio';
+                optionInput.name = 'quiz-option';
+                optionInput.value = index;
+                optionInput.checked = userAnswers[currentQuestionIndex] === index;
+                optionInput.addEventListener('change', () => {
+                    selectOption(index);
+                });
+                
+                const optionLabel = document.createElement('span');
+                optionLabel.textContent = option;
+                
+                optionElement.appendChild(optionInput);
+                optionElement.appendChild(optionLabel);
+                
+                optionsContainer.appendChild(optionElement);
+            });
+            
+            // Update navigation buttons
+            document.getElementById('prev-question').disabled = currentQuestionIndex === 0;
+            document.getElementById('next-question').style.display = 
+                currentQuestionIndex < currentQuiz.length - 1 ? 'flex' : 'none';
+            document.getElementById('submit-quiz').style.display = 
+                currentQuestionIndex === currentQuiz.length - 1 ? 'flex' : 'none';
+        }
+
+        // Select an option for the current question
+        function selectOption(optionIndex) {
+            userAnswers[currentQuestionIndex] = optionIndex;
+            displayQuestion(); // Refresh to update selected state
+        }
+
+        // Show the previous question
+        function showPreviousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        }
+
+        // Show the next question
+        function showNextQuestion() {
+            if (currentQuestionIndex < currentQuiz.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            }
+        }
+
+        // Retry the current quiz
+        function retryQuiz() {
+            if (currentQuiz.length > 0) {
+                currentQuestionIndex = 0;
+                userAnswers = new Array(currentQuiz.length).fill(null);
+                
+                // Start the quiz again
+                showPage('quiz');
+                displayQuestion();
+                
+                // Restart timer with default time or topic time
+                const timeLimit = currentTopic && currentTopic.timeLimit ? 
+                    currentTopic.timeLimit : quizData.defaultTimeLimit;
+                startTimer(timeLimit);
+            }
+        }
+
+        // Submit the quiz and calculate results
+        function submitQuiz() {
+            // Clear the timer
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            // Calculate score
+            let totalMarks = 0;
+            let maxMarks = 0;
+            const results = [];
+            
+            // Get quiz settings
+            const negativeMarking = currentTopic ? 
+                (currentTopic.negativeMarking !== undefined ? currentTopic.negativeMarking : quizData.defaultNegativeMarking) : 
+                quizData.defaultNegativeMarking;
+                
+            const marksPerQuestion = currentTopic ? 
+                (currentTopic.marksPerQuestion || quizData.defaultMarksPerQuestion) : 
+                quizData.defaultMarksPerQuestion;
+            
+            currentQuiz.forEach((question, index) => {
+                maxMarks += marksPerQuestion;
+                const isCorrect = userAnswers[index] === question.correctAnswer;
+                let questionMarks = 0;
+                
+                if (isCorrect) {
+                    questionMarks = marksPerQuestion;
+                    totalMarks += marksPerQuestion;
+                } else if (negativeMarking && userAnswers[index] !== null) {
+                    // Apply negative marking for incorrect answer
+                    questionMarks = -marksPerQuestion / 2;
+                    totalMarks -= marksPerQuestion / 2;
+                }
+                
+                results.push({
+                    question: question.question,
+                    options: question.options,
+                    userAnswer: userAnswers[index],
+                    correctAnswer: question.correctAnswer,
+                    explanation: question.explanation,
+                    tags: question.tags,
+                    isCorrect: isCorrect,
+                    marks: questionMarks
+                });
+            });
+            
+            // Ensure total marks is not negative
+            totalMarks = Math.max(0, totalMarks);
+            const score = totalMarks / maxMarks;
+            
+            // Create result object
+            const result = {
+                date: new Date().toISOString(),
+                score: score,
+                totalMarks: totalMarks,
+                maxMarks: maxMarks,
+                correctCount: results.filter(r => r.isCorrect).length,
+                totalCount: currentQuiz.length,
+                type: currentTopic ? 'topic' : 'daily',
+                topic: currentTopic ? currentTopic.name : null,
+                subject: currentSubject ? currentSubject.name : null,
+                class: currentClass ? currentClass.name : null,
+                results: results
+            };
+            
+            // Save results
+            quizResults.unshift(result); // Add to beginning of array
+            saveQuizResults();
+            
+            // Mark today's quiz as taken if it's a daily quiz
+            if (!currentTopic) {
+                const today = new Date().toDateString();
+                localStorage.setItem('lastQuizDate', today);
+            }
+            
+            // Update user badges based on performance
+            updateUserBadges(result);
+            
+            // Show results page
+            showPage('results');
+            renderResults();
+        }
+
+        // Update user badges based on quiz performance
+        function updateUserBadges(result) {
+            const percentage = result.score * 100;
+            const newBadges = [];
+            
+            // Check which badges the user has earned
+            quizData.badges.forEach(badge => {
+                if (percentage >= badge.threshold && !userProfile.badges.includes(badge.id)) {
+                    newBadges.push(badge.id);
+                }
+            });
+            
+            // Add new badges to user profile
+            if (newBadges.length > 0) {
+                userProfile.badges = [...userProfile.badges, ...newBadges];
+                saveUserProfile();
+                updateUserProfileUI();
+                
+                // Show notification for new badges
+                if (newBadges.length === 1) {
+                    alert(`Congratulations! You've earned the ${newBadges[0]} badge!`);
+                } else {
+                    alert(`Congratulations! You've earned new badges: ${newBadges.join(', ')}`);
+                }
+            }
+        }
+
+        // Render quiz results
+        function renderResults() {
+            if (quizResults.length === 0) {
+                document.getElementById('history').innerHTML = '<p>No quiz results yet. Take a quiz to see your results here!</p>';
+                return;
+            }
+            
+            const latestResult = quizResults[0];
+            
+            // Update score display
+            document.getElementById('score-display').textContent = 
+                `${latestResult.totalMarks}/${latestResult.maxMarks} (${Math.round(latestResult.score * 100)}%)`;
+            
+            // Update date display
+            const date = new Date(latestResult.date);
+            document.getElementById('quiz-date').textContent = 
+                `Date: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                
+            // Update quiz type
+            document.getElementById('quiz-type').textContent = 
+                `Quiz Type: ${latestResult.type === 'daily' ? 'Daily Challenge' : latestResult.topic}`;
+            
+            // Show/hide retry button
+            document.getElementById('retry-quiz').style.display = 
+                latestResult.type === 'topic' ? 'flex' : 'none';
+            
+            // Render charts
+            renderScoreChart();
+            renderCategoryChart();
+            
+            // Render question review
+            renderQuestionReview(latestResult);
+            
+            // Render history
+            renderHistory();
+        }
+
+        // Render score chart
+        function renderScoreChart() {
+            const ctx = document.getElementById('score-chart').getContext('2d');
+            
+            // Get last 7 results for the chart
+            const recentResults = quizResults.slice(0, 7);
+            const labels = recentResults.map(result => {
+                const date = new Date(result.date);
+                return date.toLocaleDateString();
+            }).reverse();
+            
+            const scores = recentResults.map(result => result.score * 100).reverse();
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Score (%)',
+                        data: scores,
+                        borderColor: '#ff3b30',
+                        backgroundColor: 'rgba(255, 59, 48, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render category chart
+        function renderCategoryChart() {
+            const ctx = document.getElementById('category-chart').getContext('2d');
+            
+            // Count correct/incorrect answers by tag (simplified)
+            const tagStats = {};
+            
+            quizResults.forEach(result => {
+                result.results.forEach(questionResult => {
+                    questionResult.tags.forEach(tag => {
+                        if (!tagStats[tag]) {
+                            tagStats[tag] = { correct: 0, total: 0 };
+                        }
+                        
+                        tagStats[tag].total++;
+                        if (questionResult.isCorrect) {
+                            tagStats[tag].correct++;
+                        }
+                    });
+                });
+            });
+            
+            // Get top 5 tags by total questions
+            const topTags = Object.entries(tagStats)
+                .sort((a, b) => b[1].total - a[1].total)
+                .slice(0, 5);
+            
+            const labels = topTags.map(([tag]) => tag);
+            const correctData = topTags.map(([_, stats]) => stats.correct);
+            const incorrectData = topTags.map(([_, stats]) => stats.total - stats.correct);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Correct',
+                            data: correctData,
+                            backgroundColor: '#4caf50'
+                        },
+                        {
+                            label: 'Incorrect',
+                            data: incorrectData,
+                            backgroundColor: '#ff3b30'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render question review
+        function renderQuestionReview(result) {
+            const questionsReview = document.getElementById('questions-review');
+            questionsReview.innerHTML = '<h3 style="margin: 30px 0 15px;">Question Review</h3>';
+            
+            result.results.forEach((questionResult, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = `
+                    <h4>Question ${index + 1}: ${questionResult.question}</h4>
+                    <p>Your answer: ${questionResult.userAnswer !== null ? questionResult.options[questionResult.userAnswer] : 'Not answered'} 
+                       <span style="color: ${questionResult.isCorrect ? '#4caf50' : '#ff3b30'}">
+                       (${questionResult.isCorrect ? 'Correct' : 'Incorrect'})</span>
+                    </p>
+                    ${!questionResult.isCorrect ? 
+                      `<p>Correct answer: ${questionResult.options[questionResult.correctAnswer]}</p>` : ''}
+                    <p>Marks: ${questionResult.marks > 0 ? '+' : ''}${questionResult.marks.toFixed(1)}</p>
+                    <div class="explanation">
+                        <p><strong>Explanation:</strong> ${questionResult.explanation}</p>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        ${questionResult.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                `;
+                questionsReview.appendChild(questionDiv);
+            });
+        }
+
+        // Render quiz history
+        function renderHistory() {
+            const historyContainer = document.getElementById('history');
+            historyContainer.innerHTML = '<h3 style="margin: 30px 0 15px;">Quiz History</h3>';
+            
+            if (quizResults.length === 0) {
+                historyContainer.innerHTML += '<p>No quiz history yet.</p>';
+                return;
+            }
+            
+            quizResults.forEach((result, index) => {
+                const date = new Date(result.date);
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <h4>${result.type === 'daily' ? 'Daily Quiz' : result.topic} - ${date.toLocaleDateString()}</h4>
+                    <p>Score: ${result.totalMarks}/${result.maxMarks} (${Math.round(result.score * 100)}%)</p>
+                    <p>${result.class ? result.class + ' • ' : ''}${result.subject ? result.subject : ''}</p>
+                `;
+                historyItem.addEventListener('click', () => {
+                    // Show this specific result
+                    showSpecificResult(index);
+                });
+                historyContainer.appendChild(historyItem);
+            });
+        }
+
+        // Show a specific result from history
+        function showSpecificResult(index) {
+            // For simplicity, we'll just show the latest result
+            // In a real app, you would show the selected result
+            renderResults();
+        }
+
+        // Initialize the app when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
